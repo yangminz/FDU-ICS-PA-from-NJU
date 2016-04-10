@@ -36,6 +36,77 @@ static int cmd_q(char *args) {
 	return -1;
 }
 
+static int cmd_si( char * args ){
+	int n = atoi(args);
+	if( n <= -1 ){
+		printf("Error!\n");
+		return -1;
+	}
+	int i=0;
+	for(; i<n; i++){
+		cpu_exec(1);
+	}
+	return 1;
+}
+
+static int cmd_info( char * args ){
+	if( strcmp((const char * )args, "r" ) == 0 ){
+		int i;
+		char * name_32[8]= {"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"};
+		for(i = 0; i < 4; i ++) {
+			printf("%s\t0x%0x\t%d\n", name_32[i], cpu.gpr[i]._32, cpu.gpr[i]._32 );
+		}
+		for(i = 4; i < 6; i ++) {
+			printf("%s\t0x%0x\t0x%0x\n", name_32[i], cpu.gpr[i]._32, cpu.gpr[i]._32 );
+		}
+		for(i = 6; i < 8; i ++) {
+			printf("%s\t0x%0x\t%d\n", name_32[i], cpu.gpr[i]._32, cpu.gpr[i]._32 );
+		}
+		printf("eip\t0x%0x\t%d\n", cpu.eip, cpu.eip );
+	}
+	return 1;
+}
+
+uint32_t swaddr_read(swaddr_t, size_t);
+// memory.h
+static int cmd_x( char * args ){
+	char * _num_ = strtok(args, " ");
+	int num = atoi( _num_ );
+	if( num == 0 ){
+		printf("Error!\n");
+		return -1;
+	}
+	char * expr = _num_ + strlen( _num_ ) + 1;
+	int addr;
+	sscanf( expr, "%x", &addr );
+
+	printf("0x%08x:\t", addr );
+	int i = 0;
+	for( ; i < num; i ++ ){
+		printf("0x");
+		printf("%02x", swaddr_read(addr + 3, 1) );
+		printf("%02x", swaddr_read(addr + 2, 1) );
+		printf("%02x", swaddr_read(addr + 1, 1) );
+		printf("%02x", swaddr_read(addr , 1) );
+		printf("\t");
+		addr += 4;
+	}
+	printf("\n");
+	return 1;
+}
+
+uint32_t expr(char *e, bool *success);
+static int cmd_p( char * args ){
+	bool if_succ;
+	uint32_t result = expr( args, &if_succ );
+	if( if_succ == false ){
+		printf("Error!\n");
+		return 0;
+	}
+	printf("%d\n", result );
+	return 1;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -48,7 +119,10 @@ static struct {
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
-
+	{ "si", "Execute singular steps", cmd_si },
+	{ "info", "Fetch information of registers and mointor point", cmd_info },
+	{ "x", "Scan the memory", cmd_x },
+	{ "p", "Get the value of expression", cmd_p},
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
