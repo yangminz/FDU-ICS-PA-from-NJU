@@ -6,10 +6,8 @@
 #include <sys/types.h>
 #include <regex.h>
 
-#include <malloc.h>
-
 enum {
-	NOTYPE = 256, EQ , DEC = 23
+	NOTYPE = 256, EQ , NUM = 23
 
 	/* TODO: Add more token types */
 
@@ -23,7 +21,7 @@ static struct rule {
 	/* TODO: Add more rules.
 	 * Pay attention to the precedence level of different rules.
 	 */
-	 {"[0-9]{1,}",	DEC},
+	 {"[0-9]{1,}",	NUM},
 	{" +",	NOTYPE},				// spaces
 	{"\\+", '+'},					// plus
 	{"\\-", '-'},
@@ -62,9 +60,8 @@ typedef struct token {
 
 Token tokens[32];
 int nr_token;
-// used for the whole codeevaluate 
 
-static bool make_token(char *e) {
+static bool make_token(char *e, int * end) {
 	int position = 0;
 	int i;
 	regmatch_t pmatch;
@@ -88,10 +85,16 @@ static bool make_token(char *e) {
 				 * to record the token in the array ``tokens''. For certain 
 				 * types of tokens, some extra actions should be performed.
 				 */
+				 if( substr_len >= 32 ){
+				 	printf("Length Over Flow!\nEnd the command!\n");
+				 	break;
+				 }
 				switch(rules[i].token_type) {
-					case NOTYPE: break;
-					case DEC:
-						tokens[nr_token].type = DEC;
+					case NOTYPE: 
+						nr_token -= 1;
+						break;
+					case NUM:
+						tokens[nr_token].type = NUM;
 						sprintf( tokens[nr_token].str, "%.*s", substr_len, substr_start );
 						break;	
 					case '+':
@@ -130,21 +133,70 @@ static bool make_token(char *e) {
 			return false;
 		}
 	}
-
+	*end = nr_token;
 	return true; 
 }
 
+static bool check_parentheses( int p, int q ){
+	return false;
+}
+
+int eval( int p, int q ){
+	if( p > q ){
+		/* Bad expression */
+		return -1;
+	}
+	else if( p == q ){
+		/* Single token.
+		 * For now this token should be a number
+		 * Return the value of the number
+		 */
+		 int tmp;
+		 sscanf( tokens[p].str, "%d", &tmp );
+		 return tmp;
+	}
+	else if( check_parentheses( p, q ) == true ){
+		/* The expression is surrounded by a matched pair of parentheses
+		 * If that is the case, just throw away the paretheneses
+		 */
+		 return eval( p + 1, q - 1 );
+	}
+	else{
+		/* We should do more things here */
+		int op = q;
+		int p_or_m = -256;
+		int m_or_d = -256;
+		for( ; op >= p; op -- ){
+			if( tokens[op].type != NUM ){
+				if( ( tokens[op].type == '+' || tokens[op].type == '-' ) && ( p_or_m == -256 ) )
+					p_or_m  = op;
+				if( ( tokens[op].type == '*' || tokens[op].type == '/' ) && ( m_or_d == -256 ) )
+					m_or_d = op;
+			}
+		}
+		op = ( p_or_m > -255 ) ? p_or_m : m_or_d;
+		if( op < 0 ) assert(0);
+		int val1 = eval( p, op - 1 );
+		int val2 = eval( op + 1, q );
+		switch( tokens[op].type ){
+			case '+': return val1 + val2; break;
+			case '-': return val1 - val2; break;
+			case '*': return val1 * val2; break; 
+			case '/': return val1 / val2; break;
+			default: assert(0); 
+		}
+	}
+}
+
 uint32_t expr(char *e, bool *success) {
-	if(!make_token(e)) {
+	int end;
+	if(!make_token(e, &end)) {
 		*success = false;
 		return 0;
 	}
-	int i;
-	for( i = 0; i < 32; i ++ )
-		printf("%s", tokens[i].str );
+	*success = true;
 	/* TODO: Insert codes to evaluate the expression. */
-	// use tokens[] to evaluate
+	return eval( 0, end - 1 );
 	panic("please implement me");
 	return 0;
 }
-
