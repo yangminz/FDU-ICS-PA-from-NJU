@@ -23,12 +23,39 @@ typedef struct {
 		} gpr[8];
 
 	/* Do NOT change the order of the GPRs' definitions. */
+		/* yangmin:
+		 * Method to work this out:
+		 * understand the construction of register in cpu
+		 * (1)
+		 * refer to nemu\src\cpu\reg.c to understand the meaning of tests in it
+		 * e.g.
+		 * assert(reg_b(R_AL) == (sample[R_EAX] & 0xff));
+		 * reg_b is a marco exp below in this file: 
+		 * #define reg_b(index) (cpu.gpr[check_reg_index(index) & 0x3]._8[index >> 2])
+		 * thus we rewrite the test sentence:
+		 * cpu.gpr[check_reg_index( R_AL ) & 0x3]._8[R_AL >> 2] == (sample[R_EAX] & 0xffff)
+		 * And note that there is no expr like cpu.al, cpu.bx in reg.c
+		 * So 16 bits and 8 bits registers are all in gpr[8]
+		 * (2)
+		 * note the following sentence:
+		 * assert(sample[R_EAX] == cpu.eax);
+		 * consider the sequence of assignment in reg.c:
+		 * rand() -> sample[i] -> reg_l(i) == cpu.gpr[check_reg_index( i )]._32
+		 * there is no assignment for cpu.eax
+		 * So cpu.eax and the only assigned variable cpu.gpr[ whatever ]._32 must be unioned
+		 */
 		struct{
 			uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
 		};
 	};
 
 	swaddr_t eip;
+	/* yangmin:
+	 * typedef uint32_t swaddr_t;	--	from #include "common.h"
+	 * register eip is the address of the instruction
+	 * that cpu is going to execute
+	 * For further understanding, refer to nemu\src\monitor\cpu_exec.c
+	 */
 
 } CPU_state;
 
