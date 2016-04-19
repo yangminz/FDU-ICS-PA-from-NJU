@@ -48,7 +48,7 @@ static int cmd_si( char * args ){
 	}
 	return 1;
 }
-
+// ******** src/monitor/debug/watchpoint.c
 void query_wp();
 static int cmd_info( char * args ){
 	if( strcmp((const char * )args, "r" ) == 0 ){
@@ -70,9 +70,8 @@ static int cmd_info( char * args ){
 	}
 	return 1;
 }
-
+// ******** include/monitor/monitor.h
 uint32_t swaddr_read(swaddr_t, size_t);
-// memory.h
 static int cmd_x( char * args ){
 	char * _num_ = strtok(args, " ");
 	int num = atoi( _num_ );
@@ -98,7 +97,7 @@ static int cmd_x( char * args ){
 	printf("\n");
 	return 1;
 }
-
+// ******** src/monitor/debug/expr.c
 uint32_t expr(char *e, bool *success);
 static int cmd_p( char * args ){
 	bool if_succ;
@@ -110,13 +109,10 @@ static int cmd_p( char * args ){
 	printf("%d\n", result );
 	return 1;
 }
-
-/************************************************/
-void init_wp_list();
+// ******** src/monitor/debug/watchpoint.c
 WP * new_wp();
 static int cmd_w( char * args ){
 	bool if_success;
-	//init_wp_list();
 	WP * nwp = new_wp();
 	if( strlen( args ) > 32 ){
 		printf("String Len Overflow!\n");
@@ -126,7 +122,7 @@ static int cmd_w( char * args ){
 	nwp->old_val = expr( args , &if_success);
 	return 0;
 }
-
+// ******** src/monitor/debug/watchpoint.c
 bool delete_wp( int num );
 static int cmd_d( char * args ){
 	int num = atoi( args );
@@ -134,8 +130,6 @@ static int cmd_d( char * args ){
 		printf("Delete Index Error!\n");;
 	return 0;
 }
-
-/************************************************/
 
 static int cmd_help(char *args);
 

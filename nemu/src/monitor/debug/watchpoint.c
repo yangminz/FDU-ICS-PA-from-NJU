@@ -20,11 +20,12 @@ void init_wp_list() {
 	free_ = wp_list;
 }
 /* TODO: Implement the functionality of watchpoint */
+// ******** src/monitor/cpu-exec.c
 bool check_wp(){
 	WP * curr = head;
 	bool if_success;
 	bool if_stop = false;
-	while( curr->next != NULL ){
+	while( curr != NULL ){
 		curr->new_val = expr( curr->args, &if_success );
 		if( !if_success ){
 			printf("Expression Error!\n");
@@ -40,7 +41,8 @@ bool check_wp(){
 	}
 	return if_stop;
 }
-
+// ******** src/monitor/debug/ui.c
+// ***************** static int cmd_w( char * args )
 WP * new_wp(){
 	if( free_ == NULL ) assert(0);
 	WP * nwp = free_;
@@ -49,25 +51,37 @@ WP * new_wp(){
 	head = nwp;
 	return nwp;
 }
-
-void free_wp( WP * wp ){
+// ***************** static int cmd_d( char * args )
+void free_wp( WP * prev ){
+	WP * tmp = prev->next;
+	prev->next = tmp->next;
+	tmp ->next = free_;
+	free_ = tmp;
 }
-
 bool delete_wp( int num ){
 	if( num > 31 || num < 0 )
 		return false;
-	WP * curr = head;
+	WP * prev = head;
 	int i;
-	for( i = 0; i < num; i++ )
-		curr = curr->next;
-	free_wp( curr );
+	if( num == 0 ){
+		WP * tmp = head;
+		head = head->next;
+		tmp->next = free_;
+		free_ = tmp;
+	}
+	else{
+		for( i = 0; i < num-1; i++ )  {prev = prev->next;}
+		free_wp( prev );
+	}
 	return true;
 }
-
+// ***************** static int cmd_info( char * args )
 void query_wp(){
 	WP * curr = head;
+	int i = 0;
 	while( curr != NULL ){
-		printf("%s:\t%d\n", curr->args, curr->old_val);
+		printf("%2d\t%s:\t%d\n", i, curr->args, curr->old_val);
 		curr = curr->next;
+		i++;
 	}return;
 }
