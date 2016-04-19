@@ -49,6 +49,7 @@ static int cmd_si( char * args ){
 	return 1;
 }
 
+void query_wp();
 static int cmd_info( char * args ){
 	if( strcmp((const char * )args, "r" ) == 0 ){
 		int i;
@@ -63,6 +64,9 @@ static int cmd_info( char * args ){
 			printf("%s\t0x%0x\t%d\n", name_32[i], cpu.gpr[i]._32, cpu.gpr[i]._32 );
 		}
 		printf("eip\t0x%0x\t%d\n", cpu.eip, cpu.eip );
+	}
+	else if( strcmp( (const char * )args, "w" ) == 0 ){
+		query_wp();
 	}
 	return 1;
 }
@@ -107,6 +111,32 @@ static int cmd_p( char * args ){
 	return 1;
 }
 
+/************************************************/
+void init_wp_list();
+WP * new_wp();
+static int cmd_w( char * args ){
+	bool if_success;
+	//init_wp_list();
+	WP * nwp = new_wp();
+	if( strlen( args ) > 32 ){
+		printf("String Len Overflow!\n");
+		return 0;
+	}
+	strcpy( nwp->args, args );
+	nwp->old_val = expr( args , &if_success);
+	return 0;
+}
+
+bool delete_wp( int num );
+static int cmd_d( char * args ){
+	int num = atoi( args );
+	if( !delete_wp( num ) ) 
+		printf("Delete Index Error!\n");;
+	return 0;
+}
+
+/************************************************/
+
 static int cmd_help(char *args);
 
 static struct {
@@ -123,6 +153,8 @@ static struct {
 	{ "info", "Fetch information of registers and mointor point", cmd_info },
 	{ "x", "Scan the memory", cmd_x },
 	{ "p", "Get the value of expression", cmd_p},
+	{ "w", "Set watchpoint", cmd_w},
+	{ "d", "Delete watchpoint", cmd_d},
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
