@@ -32,7 +32,24 @@ make_helper(concat(decode_si_, SUFFIX)) {
 	 *
 	op_src->simm = ???
 	 */
-	panic("please implement me");
+	switch(DATA_BYTE){
+		case 1:
+			/*sign-extended immediate*/
+			if(ops_decoded.is_data_size_16){
+				op_src->simm = (int16_t) (int8_t) instr_fetch(eip, DATA_BYTE);
+			} else {
+				op_src->simm = (int32_t) (int8_t) instr_fetch(eip, DATA_BYTE);
+			}
+			break;
+		case 4:
+			/*signed immediate*/
+			panic("check whether it's correct, then remove the message");
+			op_src->simm = instr_fetch(eip, DATA_BYTE);
+			break;
+		default:
+			panic("DATA_BYTE: 2\n");
+	}
+	//panic("please implement me");
 
 	op_src->val = op_src->simm;
 
