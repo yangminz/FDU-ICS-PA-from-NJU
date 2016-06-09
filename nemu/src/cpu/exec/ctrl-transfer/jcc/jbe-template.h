@@ -1,6 +1,6 @@
 #include "cpu/exec/template-start.h"
 
-#define instr je
+#define instr jbe
 
 static void do_execute(){
 	int32_t rel = op_src->val;
@@ -8,7 +8,7 @@ static void do_execute(){
 	rel = (int8_t) rel;
 	print_asm(str(instr) " %x", cpu.eip + rel + 2);
 #endif
-	if(cpu.eflags.ZF){
+	if( cpu.eflags.CF || cpu.eflags.ZF ){
 		cpu.eip += rel;
 	}
 }
