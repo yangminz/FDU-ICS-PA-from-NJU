@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+/*========================================================*/
+/* PA2.2                                                  */
+/*========================================================*/
+#include <elf.h>
 
 void cpu_exec(uint32_t);
 
@@ -99,6 +103,7 @@ static int cmd_x( char * args ){
 }
 // ******** src/monitor/debug/expr.c
 uint32_t expr(char *e, bool *success);
+
 static int cmd_p( char * args ){
 	bool if_succ;
 	uint32_t result = expr( args, &if_succ );
@@ -131,6 +136,38 @@ static int cmd_d( char * args ){
 	return 0;
 }
 
+/*========================================================*/
+/* PA2.2                                                  */
+/*========================================================*/
+typedef struct {
+	swaddr_t prev_ebp;
+	swaddr_t ret_addr;
+	uint32_t args[4];
+} PartOfStackFrame;
+// Frome nemu/src/monitor/debug/elf.c
+extern char * get_eipFunc(uint32_t eip);
+
+static int cmd_bt(){	
+	PartOfStackFrame frame[32];
+	//printf("  0x%08x \n", cpu.eip);
+	int i = 0;
+	uint32_t ebp = cpu.ebp, eip = cpu.eip;
+	while( ebp != 0 && eip != 0 && i <32 ){
+		char * func = get_eipFunc(eip);
+		//printf("%s\n", func);
+		printf("#%d  0x%08x in %s ()\n", i, eip, func);
+		frame[i].prev_ebp = swaddr_read(ebp, 4);
+		frame[i].ret_addr = swaddr_read(ebp + 4, 4);
+		ebp = frame[i].prev_ebp;
+		eip = frame[i].ret_addr;	
+		i++;
+	}
+	return 0;
+}
+/*========================================================*/
+/* END OF PA2.2                                           */
+/*========================================================*/
+
 static int cmd_help(char *args);
 
 static struct {
@@ -149,6 +186,7 @@ static struct {
 	{ "p", "Get the value of expression", cmd_p},
 	{ "w", "Set watchpoint", cmd_w},
 	{ "d", "Delete watchpoint", cmd_d},
+	{ "bt", "Print Chain of Stack Frame", cmd_bt},
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))

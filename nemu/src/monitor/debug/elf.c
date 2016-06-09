@@ -81,3 +81,42 @@ void load_elf_tables(int argc, char *argv[]) {
 	fclose(fp);
 }
 
+/*========================================================*/
+/* PA2.2                                                  */
+/*========================================================*/
+bool get_symAddr(char * symBuff, uint32_t * symAddr){
+	bool flag = false;
+	int i = 0;
+	for( i = 0; i < nr_symtab_entry; i ++ ){
+		if( !strcmp(strtab + symtab[i].st_name, symBuff) ){
+			
+			if( ELF32_ST_TYPE(symtab[i].st_info) == STT_OBJECT){
+				
+				//printf("%x\n",symtab[i].st_value);
+				//printf("%s\n",strtab + symtab[i].st_name);
+				
+				* symAddr = symtab[i].st_value;
+				flag = true;
+			}
+		}
+	}
+	return flag;
+}
+
+char * get_eipFunc(uint32_t eip){
+	char * func = "NULL";
+	int i = 0;
+	for( i = 0; i < nr_symtab_entry; i ++ ){
+		if( ELF32_ST_TYPE(symtab[i].st_info) == STT_FUNC ){
+			
+			if( (eip >= symtab[i].st_value) && (eip < symtab[i].st_value + symtab[i].st_size) ){
+				func = strtab + symtab[i].st_name;
+				//printf("0x%08x,%s\n", symtab[i].st_value, func);
+			}			
+		}
+	}
+	return func;
+}
+/*========================================================*/
+/* END OF PA2.2                                           */
+/*========================================================*/

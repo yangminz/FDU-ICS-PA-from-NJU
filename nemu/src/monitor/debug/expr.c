@@ -5,12 +5,20 @@
  */
 #include <sys/types.h>
 #include <regex.h>
+/*========================================================*/
+/* PA2.2                                                  */
+/*========================================================*/
+#include <elf.h>
+extern bool get_symAddr(char * symBuff, uint32_t * symAddr);
+/*========================================================*/
+/* END OF PA2.2                                           */
+/*========================================================*/
 
 enum {
-	NOT, PTR, NEG, MUL, DIV, ADD, SUB, EQ, NEQ, AND, OR, DEC, HEX, REG, LPA, RPA, NOTYPE = 256
+	NOT, PTR, NEG, MUL, DIV, ADD, SUB, EQ, NEQ, AND, OR, DEC, HEX, REG, LPA, RPA, SYM, NOTYPE = 256
 	/* TODO: Add more token types */
 };
-int prior[16] = { 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 5, -3, -3, -3, -1, -2 };
+int prior[17] = { 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 5, -3, -3, -3, -1, -2, -4 };
 
 static struct rule {
 	char *regex;
@@ -22,7 +30,7 @@ static struct rule {
 	 */
 	{" +",	NOTYPE},				// spaces
 	{"0x[0-9a-fA-F]{1,}",	HEX},
-	{"\\$[a-zA-Z]{2,3}",	REG},
+	{"\\$e(ax|cx|bx|dx|sp|bp|si|di|ip)",	REG},
 	{"[0-9]{1,}",	DEC},	
 	{"\\(", LPA},
 	{"\\)", RPA},
@@ -34,7 +42,10 @@ static struct rule {
 	{"!=", NEQ},
 	{"&&", AND},
 	{"\\|\\|", OR},
-	{"\\!", NOT}
+	{"\\!", NOT},
+	/*======================================*/
+	// PA2.2
+	{"^[A-Za-z_]+", SYM}
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
@@ -61,6 +72,10 @@ void init_regex() {
 typedef struct token {
 	int type;
 	char str[32];
+	/*========================================================*/
+	/* PA2.2                                                  */
+	/*========================================================*/
+	uint32_t addr;
 } Token;
 
 Token tokens[32];
@@ -70,6 +85,9 @@ static bool make_token(char *e) {
 	int position = 0;
 	int i;
 	regmatch_t pmatch;
+
+	char symBuff[32];
+	uint32_t symAddr;
 	
 	nr_token = 0; 
 
@@ -83,7 +101,7 @@ static bool make_token(char *e) {
 				char *substr_start = e + position;
 				int substr_len = pmatch.rm_eo;
 
-				Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s", i, rules[i].regex, position, substr_len, substr_len, substr_start);
+				// Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s", i, rules[i].regex, position, substr_len, substr_len, substr_start);
 				position += substr_len;
 
 				/* TODO: Now a new token is recognized with rules[i]. Add codes
@@ -116,6 +134,15 @@ static bool make_token(char *e) {
 					case AND:    tokens[nr_token].type = AND; break;
 					case OR:    tokens[nr_token].type = OR; break;
 					case NOT:    tokens[nr_token].type = NOT; break;
+					case SYM:
+						sprintf( symBuff, "%.*s", substr_len, substr_start );
+						if(get_symAddr(symBuff, &symAddr)){
+							tokens[nr_token].type = SYM;
+							sprintf( tokens[nr_token].str, "%.*s", substr_len, substr_start );
+							tokens[nr_token].addr = symAddr;
+							//printf("%x\n",tokens[nr_token].addr);
+						}
+						break;
 					default: panic("please implement me");
 				}
 				nr_token += 1; break;
@@ -171,6 +198,7 @@ int eval( int p, int q ){
 		 				val = cpu.gpr[i]._32; break;
 		 			}
 		 		} break;
+		 	case SYM: val = tokens[p].addr; break;
 		 	default: assert(0);
 		 }
 		 return val;
@@ -187,7 +215,7 @@ int eval( int p, int q ){
 			printf("193 Bad expression!\n");
 			assert(0);
 		}
-		//*******************************
+		/*===============================================*/
 		int prior_arr[32]; // find maximum in it
 		int locate[32];
 		int i, j, num;
@@ -208,7 +236,7 @@ int eval( int p, int q ){
 			j = ( prior_arr[i] > prior_arr[j] ) ? i : j;
 		}
 		int op = locate[j];
-		// ********************************
+		/*===============================================*/
 		int val2 = eval( op + 1, q );
 		switch( tokens[op].type ){
 			case ADD: return eval( p, op - 1 ) + val2; break;
@@ -219,7 +247,7 @@ int eval( int p, int q ){
 			case NEQ: return (eval( p, op - 1 ) != val2); break;
 			case AND: return (eval( p, op - 1 ) && val2); break;
 			case OR: return (eval( p, op - 1 ) || val2); break;
-			//**********************
+			/*===============================================*/
 			case NOT: return !(val2); break;
 			case NEG: return -1 * val2; break;
 			case PTR: return swaddr_read( val2, 4 ); break;
