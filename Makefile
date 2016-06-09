@@ -51,8 +51,23 @@ clean: clean-cpp
 
 
 ##### some convinient rules #####
+##########################################
+# PA2.1
+# --- Makefile
+# +++ Makefile
+# @@ -55,2 +55,2 @@
+# -USERPROG = obj/testcase/mov
+# +USERPROG = obj/testcase/mov-c
+#  ENTRY = $(USERPROG)
+# AFTER EDITING
+# USERPROG := obj/testcase/mov-c
+# ENTRY := $(USERPROG)
+##########################################
+# PA2.2
+# USERPROG := obj/testcase/add
+# ENTRY := $(USERPROG)
 
-USERPROG := obj/testcase/mov
+USERPROG := obj/testcase/add
 ENTRY := $(USERPROG)
 
 entry: $(ENTRY)
